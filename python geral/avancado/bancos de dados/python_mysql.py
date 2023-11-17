@@ -14,8 +14,8 @@ def maneira_um():
     conexao = connector.connect(
         host="localhost", 
         port=3306,
-        user="root",
-        passwd="ManagementProd@478"
+        user="",
+        passwd=""
     )
 
     cursor = conexao.cursor()
@@ -38,8 +38,8 @@ def maneira_dois():
     parametros = dict(
         host="localhost", 
         port=3306,
-        user="root",
-        passwd="ManagementProd@478"
+        user="",
+        passwd=""
     )
 
     table_contato = """
@@ -73,6 +73,11 @@ def maneira_dois():
                 ("ARTORiAS 4","984572"),
                 ("ARTORiAS 5","874572")
              )
+    
+    select = "SELECT * FROM contatos"
+    select_compacto = "SELECT nome,tel FROM contatos"
+    select_where = "SELECT nome,tel FROM contatos WHERE nome = 'ARTORiAS'"
+    select_where_like = "SELECT nome,tel FROM contatos WHERE nome LIKE '%A%'"
     try:
         with nova_conexao() as conexao:
             try:
@@ -85,6 +90,8 @@ def maneira_dois():
                     cursor.executemany(insert,args_)
                     cursor.execute(insert,args)
                     conexao.commit()
+
+                    contatos = cursor.fetchall(select)
 
                     cursor.execute(update,arg)
 
