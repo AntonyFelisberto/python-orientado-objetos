@@ -1,6 +1,7 @@
 
-#&  |  ~  ^
+from collections import defaultdict
 
+#&  |  ~  ^ -> OPERADORES BINARIOS
 
 try:
     from contextlib import contextmanager
@@ -53,6 +54,22 @@ def maneira_dois():
         )
     """
 
+    table_grupo = """
+        CREATE TABLE IF NOT EXISTS grupos(
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            descricao VARCHAR(30)
+        )
+    """
+
+    alter_contato_ = """
+        ALTER TABLE contatos ADD grupo_id INT
+    """
+
+    alter_contato = """
+        ALTER TABLE contatos ADD FOREIGN KEY (group_id)
+        REFERENCES grupos(id)
+    """
+
     drop_table = "DROP TABLE emails"
 
     listar_tabelas = "SHOW TABLES"
@@ -78,6 +95,27 @@ def maneira_dois():
     select_compacto = "SELECT nome,tel FROM contatos"
     select_where = "SELECT nome,tel FROM contatos WHERE nome = 'ARTORiAS'"
     select_where_like = "SELECT nome,tel FROM contatos WHERE nome LIKE '%A%'"
+    select_where_like_order = "SELECT nome,tel FROM contatos ORDER BY nome DESC"
+    select_where_limit = "SELECT nome,tel FROM contatos LIMIT 5 OFFSET 8"
+
+    deletes = "DELETE FROM contatos WHERE id = 1"
+
+    selecionar_grupo = "SELECT id FROM contatos WHERE descricao = %s"
+    atualiza_contato = "UPDATE contatos SET grupo_id = %s WHERE nome = %s"
+    contato_grupo = {
+        "anas":"casa",
+        "retor":"casa"
+    }
+
+    join = """
+        SELECT
+            grupos.descricao as grupo,
+            contatos.nome as contato
+        FROM contatos
+        INNER JOIN grupos ON contatos.grupo_id = grupos.id
+        ORDER BY grupo,contato
+    """
+
     try:
         with nova_conexao() as conexao:
             try:
@@ -86,14 +124,30 @@ def maneira_dois():
                     cursor.execute(use_database)
                     cursor.execute(table_emails)
                     cursor.execute(table_contato)
+                    cursor.execute(table_grupo)
+                    cursor.execute(alter_contato_)
+                    cursor.execute(alter_contato)
                     cursor.execute(alter)
                     cursor.executemany(insert,args_)
                     cursor.execute(insert,args)
                     conexao.commit()
-
+                    
+                    cursor.execute(select_compacto)
+                    cursor.execute(select_where)
+                    cursor.execute(select_where_like)
+                    cursor.execute(select_where_like_order)
+                    cursor.execute(select_where_limit)
                     contatos = cursor.fetchall(select)
 
+                    for contato,grupo in contato_grupo:
+                        cursor.execute(selecionar_grupo,(grupo,))
+                        grupo_id = cursor.fetchone()[0]
+                        cursor.execute(atualiza_contato,(grupo_id,contato))
+                        conexao.commit()
+
                     cursor.execute(update,arg)
+
+                    cursor.execute(deletes)
 
                     cursor.execute(listar_tabelas)
                     for i,database in enumerate(cursor,start=1):
@@ -104,8 +158,19 @@ def maneira_dois():
                         cursor.execute(drop_table)
                         cursor.fetchall()
 
+                    cursor.close()
+                    cursor - conexao.cursor(dictionary=True)
+                    cursor.execute(join)
+                    contatos = cursor.fetchall()
+
+                    agrupados = defaultdict(list)
+                    for contato in contatos:
+                        agrupados[contato["grupo"]].append(contato["nome"])
             except Exception as e:
                 print("ERROR ", e)
+
+            finally:
+                cursor.close()
     except:
         print("ERROR POR FORA")
    
